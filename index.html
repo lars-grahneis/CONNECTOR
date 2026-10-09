@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Erlaubt nur Dateien dieser App selbst; keine fremden Server, keine Datenübertragung -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1d6b58">
+  <meta name="description" content="Private Kontaktpflege: letzter Kontakt, Geburtstage, Anknüpfungspunkte. Daten bleiben auf dem Gerät.">
+  <title>CONNECTOR</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand" aria-hidden="true">●</span>
+    <h1 id="title">CONNECTOR</h1>
+  </header>
+  <main id="view" tabindex="-1">
+    <noscript><p class="empty">CONNECTOR braucht JavaScript.</p></noscript>
+  </main>
+  <nav class="tabbar" aria-label="Hauptnavigation">
+    <a href="#/heute" data-tab="heute">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4zM4 9h16M8 3v4M16 3v4"/></svg>
+      <span>Heute</span>
+    </a>
+    <a href="#/kontakte" data-tab="kontakte">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c1.8.7 3 2.4 3.5 5.2"/></svg>
+      <span>Kontakte</span>
+    </a>
+    <a href="#/mehr" data-tab="mehr">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+      <span>Mehr</span>
+    </a>
+  </nav>
+  <dialog id="modal" aria-label="Dialog"></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

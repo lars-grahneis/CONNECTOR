@@ -1,0 +1,9 @@
+# Persönliche Daten dürfen nie ins Repo
+*.vcf
+*.ics
+*.zip
+WhatsApp*.txt
+*Chat mit*.txt
+*Chat with*.txt
+connector-backup*.json
+data/

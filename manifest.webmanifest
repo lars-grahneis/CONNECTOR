@@ -1,0 +1,16 @@
+{
+  "name": "CONNECTOR – Kontaktpflege",
+  "short_name": "CONNECTOR",
+  "description": "Private Kontaktpflege: letzter Kontakt, Geburtstage, Anknüpfungspunkte. Daten bleiben auf dem Gerät.",
+  "lang": "de",
+  "start_url": "./#/heute",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f4f0",
+  "theme_color": "#1d6b58",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,6 +1,6 @@
 // Service Worker: hält die App-Dateien für den Offline-Betrieb vor.
 // Er speichert nur Programmdateien, keine Kontaktdaten.
-const CACHE = 'connector-v3';
+const CACHE = 'connector-v4';
 const ASSETS = [
   './',
   './index.html',

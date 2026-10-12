@@ -12,7 +12,7 @@ import { waNumber } from './phone.js';
 import { encryptJSON, decryptJSON, isEncrypted } from './crypto.js';
 import { decodeBytes, parseBackupText, describeFile } from './backup.js';
 
-const APP_VERSION = '0.2.1';
+const APP_VERSION = '0.2.2';
 const BACKUP_WARN_DAYS = 30;
 const RHYTHM_PRESETS = [7, 14, 28];
 
@@ -671,7 +671,9 @@ function showBackupReady(file, encrypted) {
     });
     m.querySelector('[data-share]')?.addEventListener('click', async () => {
       try {
-        await navigator.share({ files: [file], title: 'CONNECTOR-Sicherung' });
+        // Nur die Datei teilen, ohne Titel oder Text: Sonst überträgt Quick Share
+        // den Titel als eigene kleine Textdatei statt der Sicherung.
+        await navigator.share({ files: [file] });
       } catch (e) {
         if (e.name !== 'AbortError') toast('Senden nicht möglich – bitte „Auf Gerät speichern“ nutzen');
         return;
@@ -705,6 +707,7 @@ function showImportProblem(d) {
       <dt>Anfang</dt><dd><code>${esc(d.start)}</code></dd>
       <dt>Version</dt><dd>CONNECTOR ${APP_VERSION}</dd>
     </dl>
+    ${d.size < 200 ? '<p><strong>Die Datei ist sehr klein.</strong> Vermutlich wurde nur ein kurzer Text übertragen, nicht die Sicherung selbst. Eine echte Sicherung ist mehrere Kilobyte groß und heißt „connector-sicherung-…txt“.</p>' : ''}
     <p class="muted small">Für die Fehlersuche können Sie diese fünf Angaben an Claude schicken. Sie enthalten keine Kontaktdaten.</p>
     <div class="actions"><button class="btn primary" data-close>OK</button></div>
   </div>`);

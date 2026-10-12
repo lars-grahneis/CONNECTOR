@@ -9,8 +9,9 @@ import { parseWhatsAppChat, nameFromFileName } from './whatsapp.js';
 import { parseVCards } from './vcard.js';
 import { birthdaysToICS } from './ics.js';
 import { waNumber } from './phone.js';
+import { encryptJSON, decryptJSON, isEncrypted } from './crypto.js';
 
-const APP_VERSION = '0.1.1';
+const APP_VERSION = '0.2.0';
 const BACKUP_WARN_DAYS = 30;
 const RHYTHM_PRESETS = [7, 14, 28];
 
@@ -115,7 +116,7 @@ function birthdayText(nb) {
 
 function openModal(html, setup) {
   modalEl.innerHTML = html;
-  modalEl.showModal();
+  if (!modalEl.open) modalEl.showModal();
   modalEl.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeModal));
   setup?.(modalEl);
 }
@@ -187,7 +188,7 @@ function renderToday() {
   }
   const o = todayOverview(contacts, t);
   const backupAge = lastBackup ? daysBetween(lastBackup, t) : null;
-  let html = '';
+  let html = installBanner();
   if (backupAge == null || backupAge > BACKUP_WARN_DAYS) {
     html += `<div class="banner">
       <span>${backupAge == null ? 'Noch keine Datensicherung erstellt.' : `Letzte Datensicherung vor ${backupAge} Tagen.`}</span>
@@ -589,23 +590,144 @@ async function importVCard() {
 
 // ---------- Datensicherung ----------
 
-async function exportBackup() {
-  const data = { app: 'connector', version: 1, exportedAt: new Date().toISOString(), settings, contacts };
-  download(`connector-backup-${today()}.json`, JSON.stringify(data, null, 2), 'application/json');
+const MIN_PASSWORD = 8;
+
+// Sicherungen sind .txt-Dateien (Inhalt: JSON), weil Chrome auf Android nur bestimmte
+// Dateitypen über das Teilen-Menü (z. B. Quick Share) weitergibt; .txt gehört dazu.
+function backupFile(text) {
+  return new File([text], `connector-sicherung-${today()}.txt`, { type: 'text/plain' });
+}
+
+function canShareFile(file) {
+  try { return !!navigator.canShare && navigator.canShare({ files: [file] }); } catch { return false; }
+}
+
+async function markBackedUp() {
   lastBackup = today();
   await db.setMeta('lastBackup', lastBackup);
-  toast('Sicherung gespeichert');
-  render();
+}
+
+function exportBackup() {
+  openModal(`<form class="form" id="backup-form" autocomplete="off">
+    <h2>Sicherung erstellen</h2>
+    <p class="muted small">Mit Passwort ist die Datei verschlüsselt. Dann kann sie niemand lesen, auch wenn sie über Google Drive, E-Mail oder einen USB-Stick läuft. Das Passwort wird nirgends gespeichert: Ohne Passwort lässt sich die Sicherung nicht wiederherstellen.</p>
+    <label>Passwort (mindestens ${MIN_PASSWORD} Zeichen)
+      <input type="password" name="pw" autocomplete="new-password">
+    </label>
+    <label>Passwort wiederholen
+      <input type="password" name="pw2" autocomplete="new-password">
+    </label>
+    <p class="error" role="alert"></p>
+    <div class="actions wrap">
+      <button type="button" class="btn" data-close>Abbrechen</button>
+      <button type="submit" class="btn primary">Weiter</button>
+    </div>
+  </form>`, m => {
+    const form = m.querySelector('form');
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const err = form.querySelector('.error');
+      const pw = form.elements.pw.value, pw2 = form.elements.pw2.value;
+      if (pw || pw2) {
+        if (pw.length < MIN_PASSWORD) { err.textContent = `Das Passwort braucht mindestens ${MIN_PASSWORD} Zeichen.`; return; }
+        if (pw !== pw2) { err.textContent = 'Die beiden Passwörter stimmen nicht überein.'; return; }
+      } else if (!confirm('Ohne Passwort speichern? Wer die Datei hat, kann dann alle Kontakte und Notizen lesen.')) {
+        return;
+      }
+      const data = { app: 'connector', version: 1, exportedAt: new Date().toISOString(), settings, contacts };
+      let payload = data;
+      if (pw) {
+        form.querySelector('button[type=submit]').disabled = true;
+        err.textContent = '';
+        toast('Verschlüssele …');
+        payload = await encryptJSON(data, pw);
+      }
+      showBackupReady(backupFile(JSON.stringify(payload, null, pw ? 0 : 2)), !!pw);
+    });
+  });
+}
+
+// Zweiter Schritt mit eigenem Klick: Teilen braucht eine frische Nutzeraktion,
+// und das Verschlüsseln kann auf dem Handy ein paar Sekunden dauern.
+function showBackupReady(file, encrypted) {
+  const share = canShareFile(file);
+  openModal(`<div class="form">
+    <h2>Sicherung bereit</h2>
+    <p>${plural(contacts.length, 'Kontakt', 'Kontakte')} · ${encrypted ? '🔒 verschlüsselt' : '⚠️ nicht verschlüsselt'}<br><small class="muted">${esc(file.name)}</small></p>
+    ${share ? '<p class="muted small"><strong>Senden</strong> öffnet das Teilen-Menü. Für die direkte Übertragung aufs Tablet dort <strong>Quick Share</strong> wählen. Auf dem anderen Gerät dann „Mehr“ → „Sicherung einspielen“.</p>' : ''}
+    <div class="actions wrap">
+      <button type="button" class="btn" data-close>Schließen</button>
+      <button type="button" class="btn" data-save>Auf Gerät speichern</button>
+      ${share ? '<button type="button" class="btn primary" data-share>Senden</button>' : ''}
+    </div>
+  </div>`, m => {
+    m.querySelector('[data-save]').addEventListener('click', async () => {
+      download(file.name, await file.text(), 'text/plain');
+      await markBackedUp();
+      closeModal();
+      toast('Sicherung gespeichert');
+      render();
+    });
+    m.querySelector('[data-share]')?.addEventListener('click', async () => {
+      try {
+        await navigator.share({ files: [file], title: 'CONNECTOR-Sicherung' });
+      } catch (e) {
+        if (e.name !== 'AbortError') toast('Senden nicht möglich – bitte „Auf Gerät speichern“ nutzen');
+        return;
+      }
+      await markBackedUp();
+      closeModal();
+      toast('Sicherung gesendet');
+      render();
+    });
+  });
 }
 
 async function importBackup() {
-  const file = await pickFile('.json,application/json');
+  const file = await pickFile('.txt,.json,text/plain,application/json');
   if (!file) return;
   let data;
   try {
     data = JSON.parse(await file.text());
-    if (data.app !== 'connector' || !Array.isArray(data.contacts)) throw new Error();
   } catch {
+    return toast('Keine gültige CONNECTOR-Sicherung');
+  }
+  if (isEncrypted(data)) return askBackupPassword(data);
+  confirmRestore(data);
+}
+
+function askBackupPassword(envelope) {
+  openModal(`<form class="form" autocomplete="off">
+    <h2>Verschlüsselte Sicherung</h2>
+    <label>Passwort <input type="password" name="pw" autocomplete="current-password" required></label>
+    <p class="error" role="alert"></p>
+    <div class="actions">
+      <button type="button" class="btn" data-close>Abbrechen</button>
+      <button type="submit" class="btn primary">Entschlüsseln</button>
+    </div>
+  </form>`, m => {
+    const form = m.querySelector('form');
+    form.elements.pw.focus();
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const err = form.querySelector('.error');
+      const btn = form.querySelector('button[type=submit]');
+      btn.disabled = true;
+      err.textContent = '';
+      try {
+        const data = await decryptJSON(envelope, form.elements.pw.value);
+        confirmRestore(data);
+      } catch {
+        err.textContent = 'Passwort falsch oder Datei beschädigt.';
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+function confirmRestore(data) {
+  if (!data || data.app !== 'connector' || !Array.isArray(data.contacts)) {
+    closeModal();
     return toast('Keine gültige CONNECTOR-Sicherung');
   }
   const incoming = data.contacts.filter(c => c && c.id && c.name);
@@ -651,7 +773,7 @@ async function renderMore() {
   let persisted = null;
   try { persisted = await navigator.storage?.persisted?.(); } catch { /* nicht unterstützt */ }
   if (route().page !== 'mehr') return;
-  show(`<section class="card">
+  show(`${installCard()}<section class="card">
       <h2>Kontakte hinzufügen</h2>
       <div class="actions wrap">
         <a class="btn" href="#/neu">Von Hand</a>
@@ -672,10 +794,10 @@ async function renderMore() {
     </section>
     <section class="card">
       <h2>Datensicherung</h2>
-      <p class="muted small">Ihre Daten liegen nur in diesem Browser. Löschen Sie die Browserdaten oder wechseln Sie das Gerät, sind sie ohne Sicherung weg. Die Sicherungsdatei enthält alle Kontaktdaten: nicht hochladen und nicht unverschlüsselt verschicken.</p>
+      <p class="muted small">Ihre Daten liegen nur auf diesem Gerät. Löschen Sie die Browserdaten oder wechseln Sie das Gerät, sind sie ohne Sicherung weg. So übertragen Sie Daten auf ein anderes Gerät: hier „Sicherung erstellen“ → mit Passwort → „Senden“ (Quick Share) oder „Auf Gerät speichern“; auf dem anderen Gerät „Sicherung einspielen“ → „Zusammenführen“.</p>
       <p>Letzte Sicherung: <strong>${lastBackup ? formatDE(lastBackup) : 'noch keine'}</strong></p>
       <div class="actions wrap">
-        <button class="btn primary" data-action="backup">Sicherung speichern</button>
+        <button class="btn primary" data-action="backup">Sicherung erstellen</button>
         <button class="btn" data-action="restore">Sicherung einspielen</button>
       </div>
     </section>
@@ -721,6 +843,57 @@ async function wipe() {
   location.hash = '#/heute';
 }
 
+// ---------- Installation als App ----------
+
+let installPrompt = null;
+let installBannerHidden = false;
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isAndroid = /Android/i.test(navigator.userAgent);
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  installPrompt = e;
+  if (['heute', 'mehr'].includes(route().page) && !modalEl.open) render();
+});
+
+window.addEventListener('appinstalled', () => {
+  installPrompt = null;
+  toast('CONNECTOR ist installiert');
+  render();
+});
+
+function installBanner() {
+  if (isStandalone() || !installPrompt || installBannerHidden) return '';
+  return `<div class="banner install">
+    <span>CONNECTOR als App mit eigenem Symbol installieren?</span>
+    <span class="banner-actions">
+      <button class="btn-small" data-action="install-later">Später</button>
+      <button class="btn-small primary" data-action="install">Installieren</button>
+    </span>
+  </div>`;
+}
+
+function installCard() {
+  if (isStandalone()) return '';
+  const howto = isAndroid
+    ? 'Chrome-Menü ⋮ (oben rechts) → „App installieren“ oder „Zum Startbildschirm hinzufügen“ → „Installieren“.'
+    : 'In Chrome oder Edge: Menü ⋮ (oben rechts) → „Streamen, speichern und teilen“ → „Seite als App installieren …“ (Chrome) bzw. „Apps“ → „Diese Website als App installieren“ (Edge). Alternativ das Installieren-Symbol rechts in der Adressleiste.';
+  return `<section class="card">
+    <h2>Als App installieren</h2>
+    <p class="muted small">Danach öffnen Sie CONNECTOR über ein eigenes Symbol ${isAndroid ? 'auf dem Startbildschirm' : 'im Startmenü bzw. auf dem Desktop'}, ohne Browser und ohne GitHub.</p>
+    ${installPrompt ? '<button class="btn primary" data-action="install">App installieren</button>' : `<p class="small">${howto}</p>`}
+  </section>`;
+}
+
+async function runInstall() {
+  if (!installPrompt) return;
+  const p = installPrompt;
+  installPrompt = null;
+  await p.prompt();
+  await p.userChoice.catch(() => null);
+  render();
+}
+
 // ---------- Ereignisse ----------
 
 const actions = {
@@ -732,6 +905,8 @@ const actions = {
   backup: () => exportBackup(),
   restore: () => importBackup(),
   wipe: () => wipe(),
+  install: () => runInstall(),
+  'install-later': () => { installBannerHidden = true; render(); },
   'delete-history': async d => {
     const c = byId(d.id);
     if (!c || !confirm('Diesen Eintrag löschen?')) return;

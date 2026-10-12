@@ -11,8 +11,12 @@ Dieses Repo ist öffentlich, es enthält aber nur Programmcode. Kontaktdaten, No
 ## Nutzung
 
 1. In Chrome öffnen: `https://lars-grahneis.github.io/CONNECTOR/`
-2. Installieren: Chrome-Menü ⋮ → „Zum Startbildschirm hinzufügen“ bzw. „App installieren“.
-3. Regelmäßig unter „Mehr“ → „Sicherung speichern“ eine Sicherungsdatei anlegen. Die Datei enthält alle Kontaktdaten: nicht hochladen, nicht unverschlüsselt verschicken.
+2. Installieren: In der App unter „Mehr“ → „App installieren“, oder Chrome-Menü ⋮ → „App installieren“ (Android) bzw. „Streamen, speichern und teilen“ → „Seite als App installieren“ (Windows).
+3. Regelmäßig unter „Mehr“ → „Sicherung erstellen“ eine Sicherung anlegen, am besten mit Passwort (AES-GCM, Schlüssel per PBKDF2-SHA-256 mit 600 000 Iterationen).
+
+### Daten auf ein anderes Gerät übertragen
+
+„Mehr“ → „Sicherung erstellen“ → Passwort → „Senden“ (Android: Teilen-Menü, z. B. Quick Share) oder „Auf Gerät speichern“. Auf dem anderen Gerät „Mehr“ → „Sicherung einspielen“ → Passwort → „Zusammenführen“. Sicherungen sind `.txt`-Dateien mit JSON-Inhalt, weil Chrome auf Android über das Teilen-Menü keine `.json`-Dateien weitergibt.
 
 ### WhatsApp-Chat importieren
 
@@ -36,4 +40,5 @@ Reines HTML, CSS und JavaScript ohne Build-Schritt und ohne externe Bibliotheken
 | `js/model.js`, `js/dates.js` | Fälligkeit, Geburtstage, Datumsrechnung |
 | `js/whatsapp.js`, `js/vcard.js`, `js/ics.js`, `js/phone.js` | Chat-Export lesen, vCard lesen, Kalenderdatei, WhatsApp-Nummer |
 | `js/db.js` | Lokaler Speicher (IndexedDB) |
+| `js/crypto.js` | Verschlüsselung der Sicherungsdatei |
 | `sw.js`, `manifest.webmanifest` | Offline-Betrieb und Installation |

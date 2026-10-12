@@ -95,3 +95,11 @@ Das Repo ist öffentlich. Öffentlich ist nur der Programmcode, niemals Kontaktd
 
 - Ich teste in Chrome auf dem Android-Handy und am PC und gebe Rückmeldung.
 - Testfälle: Kontakt von Hand anlegen, aus Telefonbuch wählen, vCard importieren, „Gemeldet“, Fälligkeit nach Rhythmus, Geburtstag in 14 Tagen, Chat-Import mit einem echten Kontakt, Sicherung exportieren und auf einem anderen Gerät importieren, Offline-Start.
+
+## Ergänzungen nach dem ersten Test (Version 0.2)
+
+- Löschen-Knopf auf jeder Kontaktkarte (mit Rückfrage).
+- Knopf „App installieren“ (unter „Mehr“ und als Hinweis auf „Heute“, sobald Chrome die Installation anbietet), sonst Schritt-für-Schritt-Hinweis.
+- Datensicherung optional mit Passwort verschlüsselt (AES-GCM, PBKDF2-SHA-256, 600 000 Iterationen); das Passwort wird nicht gespeichert.
+- „Senden“ der Sicherung über das Teilen-Menü (Android: Quick Share), ohne Cloud. Dateiformat `.txt`, weil Chrome `.json` nicht teilt.
+- Keine EXE/APK: Installation über Chrome reicht vorerst.

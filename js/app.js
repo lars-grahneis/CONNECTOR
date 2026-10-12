@@ -10,7 +10,7 @@ import { parseVCards } from './vcard.js';
 import { birthdaysToICS } from './ics.js';
 import { waNumber } from './phone.js';
 
-const APP_VERSION = '0.1.0';
+const APP_VERSION = '0.1.1';
 const BACKUP_WARN_DAYS = 30;
 const RHYTHM_PRESETS = [7, 14, 28];
 
@@ -284,6 +284,7 @@ function detailHtml(c) {
       ${wa ? `<a class="btn" href="https://wa.me/${wa}" target="_blank" rel="noopener noreferrer">WhatsApp öffnen</a>` : ''}
       <button class="btn" data-action="chat" data-id="${esc(c.id)}">Chat importieren</button>
       <a class="btn" href="#/kontakt/${encodeURIComponent(c.id)}/bearbeiten">Bearbeiten</a>
+      <button class="btn danger" data-action="delete-contact" data-id="${esc(c.id)}">Löschen</button>
     </div>
     <section>
       <h3>Gesprächshistorie</h3>
@@ -743,8 +744,8 @@ const actions = {
     if (!c || !confirm(`${c.name} mit allen Notizen löschen?`)) return;
     await db.deleteContact(c.id);
     await reload();
-    toast('Kontakt gelöscht');
-    location.hash = '#/kontakte';
+    toast(`${c.name} gelöscht`);
+    if (location.hash === '#/kontakte') render(); else location.hash = '#/kontakte';
   },
 };
 

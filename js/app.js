@@ -10,8 +10,9 @@ import { parseVCards } from './vcard.js';
 import { birthdaysToICS } from './ics.js';
 import { waNumber } from './phone.js';
 import { encryptJSON, decryptJSON, isEncrypted } from './crypto.js';
+import { decodeBytes, parseBackupText, describeFile } from './backup.js';
 
-const APP_VERSION = '0.2.0';
+const APP_VERSION = '0.2.1';
 const BACKUP_WARN_DAYS = 30;
 const RHYTHM_PRESETS = [7, 14, 28];
 
@@ -93,7 +94,7 @@ function pickFile(accept) {
   return new Promise(resolve => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = accept;
+    if (accept) input.accept = accept;
     input.addEventListener('change', () => resolve(input.files[0] || null));
     input.click();
   });
@@ -684,16 +685,29 @@ function showBackupReady(file, encrypted) {
 }
 
 async function importBackup() {
-  const file = await pickFile('.txt,.json,text/plain,application/json');
+  const file = await pickFile('');
   if (!file) return;
-  let data;
-  try {
-    data = JSON.parse(await file.text());
-  } catch {
-    return toast('Keine gültige CONNECTOR-Sicherung');
-  }
+  const text = decodeBytes(await file.arrayBuffer());
+  const data = parseBackupText(text);
   if (isEncrypted(data)) return askBackupPassword(data);
-  confirmRestore(data);
+  if (data && data.app === 'connector' && Array.isArray(data.contacts)) return confirmRestore(data);
+  showImportProblem(describeFile(file.name, file.size, file.type, text));
+}
+
+function showImportProblem(d) {
+  openModal(`<div class="form">
+    <h2>Datei nicht erkannt</h2>
+    <p>Diese Datei ist keine lesbare CONNECTOR-Sicherung. Häufige Ursachen: eine andere Datei gewählt (z. B. ein WhatsApp-Export), die Übertragung hat die Datei verändert, oder auf dem anderen Gerät läuft noch eine ältere CONNECTOR-Version.</p>
+    <dl class="facts small">
+      <dt>Datei</dt><dd>${esc(d.name)}</dd>
+      <dt>Größe</dt><dd>${d.size.toLocaleString('de-DE')} Byte</dd>
+      <dt>Typ</dt><dd>${esc(d.type)}</dd>
+      <dt>Anfang</dt><dd><code>${esc(d.start)}</code></dd>
+      <dt>Version</dt><dd>CONNECTOR ${APP_VERSION}</dd>
+    </dl>
+    <p class="muted small">Für die Fehlersuche können Sie diese fünf Angaben an Claude schicken. Sie enthalten keine Kontaktdaten.</p>
+    <div class="actions"><button class="btn primary" data-close>OK</button></div>
+  </div>`);
 }
 
 function askBackupPassword(envelope) {

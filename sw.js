@@ -1,6 +1,6 @@
 // Service Worker: hält die App-Dateien für den Offline-Betrieb vor.
 // Er speichert nur Programmdateien, keine Kontaktdaten.
-const CACHE = 'connector-v6';
+const CACHE = 'connector-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -29,7 +29,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== 'connector-share').map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE && !k.startsWith('connector-share')).map(k => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
@@ -48,6 +48,10 @@ self.addEventListener('fetch', e => {
         await cache.put('./shared-file', new Response(file, {
           headers: { 'Content-Type': file.type || 'text/plain', 'X-File-Name': encodeURIComponent(file.name || 'geteilt.txt') },
         }));
+      } else {
+        // Nur Link oder Text geteilt (z. B. Drive „Teilen“): für den Hinweis in der App merken
+        const cache = await caches.open('connector-share-text');
+        await cache.put('./shared-text', new Response(JSON.stringify({ url: form.get('url') || '', text: form.get('text') || '' })));
       }
       return Response.redirect('./#/geteilt', 303);
     })());

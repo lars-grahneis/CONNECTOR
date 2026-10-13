@@ -13,7 +13,7 @@ import { encryptJSON, decryptJSON, isEncrypted } from './crypto.js';
 import { decodeBytes, parseBackupText, describeFile } from './backup.js';
 import { PIN_MIN, PIN_MAX, isValidPin, createPinRecord, checkPin, lockoutMs } from './lock.js';
 
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.4.1';
 const BACKUP_WARN_DAYS = 30;
 const RHYTHM_PRESETS = [7, 14, 28];
 
@@ -91,12 +91,23 @@ function download(name, text, type) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
+// Das Eingabefeld hängt während der Auswahl im Dokument. Ein losgelöstes Feld kann der
+// Browser aufräumen, solange die Dateiauswahl (z. B. Google Drive) geöffnet ist; dann
+// käme die gewählte Datei nie an.
 function pickFile(accept) {
   return new Promise(resolve => {
     const input = document.createElement('input');
     input.type = 'file';
+    input.hidden = true;
     if (accept) input.accept = accept;
-    input.addEventListener('change', () => resolve(input.files[0] || null));
+    const done = file => { input.remove(); resolve(file); };
+    input.addEventListener('change', () => {
+      const file = input.files[0] || null;
+      if (file) toast(`„${file.name}“ wird gelesen …`);
+      done(file);
+    });
+    input.addEventListener('cancel', () => done(null));
+    document.body.append(input);
     input.click();
   });
 }
@@ -763,16 +774,27 @@ function confirmRestore(data) {
     </div>
   </div>`, m => {
     m.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', async () => {
+      const cur = new Map(contacts.map(c => [c.id, c]));
+      let summary;
       if (b.dataset.mode === 'replace') {
         if (!confirm(`Wirklich alle ${contacts.length} Kontakte auf diesem Gerät ersetzen?`)) return;
         await db.replaceContacts(incoming);
+        summary = `${plural(incoming.length, 'Kontakt', 'Kontakte')} übernommen, vorherige Kontakte ersetzt.`;
       } else {
-        const cur = new Map(contacts.map(c => [c.id, c]));
-        await db.putContacts(incoming.filter(c => !cur.has(c.id) || (c.updatedAt || '') > (cur.get(c.id).updatedAt || '')));
+        const added = incoming.filter(c => !cur.has(c.id));
+        const updated = incoming.filter(c => cur.has(c.id) && (c.updatedAt || '') > (cur.get(c.id).updatedAt || ''));
+        await db.putContacts([...added, ...updated]);
+        const same = incoming.length - added.length - updated.length;
+        summary = `${plural(added.length, 'Kontakt', 'Kontakte')} neu, ${updated.length} aktualisiert, ${same} unverändert (auf diesem Gerät schon gleich oder neuer).`;
       }
       await reload();
-      closeModal();
       toast('Sicherung eingespielt');
+      openModal(`<div class="form">
+        <h2>Sicherung eingespielt</h2>
+        <p>${summary}</p>
+        <p>Jetzt auf diesem Gerät: <strong>${plural(contacts.length, 'Kontakt', 'Kontakte')}</strong>.</p>
+        <div class="actions"><button class="btn primary" data-close>OK</button></div>
+      </div>`);
       render();
     }));
   });
@@ -891,7 +913,19 @@ async function receiveSharedFile() {
     }
     await caches.delete('connector-share');
   } catch { /* kein Zwischenspeicher */ }
-  if (!file) return toast('Keine Datei empfangen');
+  if (!file) {
+    let shared = null;
+    try { shared = await (await caches.match('./shared-text'))?.json(); } catch { /* nichts */ }
+    await caches.delete('connector-share-text').catch(() => {});
+    openModal(`<div class="form">
+      <h2>Keine Datei empfangen</h2>
+      <p>${shared && (shared.url || shared.text) ? 'Es kam nur ein Link oder Text an, nicht die Datei selbst.' : 'Es kam keine Datei an.'}</p>
+      <p class="small">In <strong>Google Drive</strong> nicht „Teilen“ (das schickt nur einen Link), sondern bei der Datei ⋮ → <strong>„Senden“</strong> bzw. „Kopie senden“ → CONNECTOR wählen. Oder in CONNECTOR „Mehr“ → „Sicherung einspielen“ und in der Dateiauswahl links im Menü „Drive“ öffnen.</p>
+      <div class="actions"><button class="btn primary" data-close>OK</button></div>
+    </div>`);
+    return;
+  }
+  await caches.delete('connector-share-text').catch(() => {});
   const data = parseBackupText(decodeBytes(await file.arrayBuffer()));
   if (isEncrypted(data) || (data && data.app === 'connector')) return importBackup(file);
   return openChatImport(null, file);

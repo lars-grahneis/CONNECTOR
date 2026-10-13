@@ -1,6 +1,6 @@
 // Service Worker: hält die App-Dateien für den Offline-Betrieb vor.
 // Er speichert nur Programmdateien, keine Kontaktdaten.
-const CACHE = 'connector-v4';
+const CACHE = 'connector-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -28,7 +28,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== 'connector-share').map(k => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
@@ -36,6 +36,22 @@ self.addEventListener('activate', e => {
 // Erst Netz (damit Updates sofort ankommen), ohne Netz aus dem Zwischenspeicher.
 self.addEventListener('fetch', e => {
   const req = e.request;
+  // „Teilen → CONNECTOR“ (Web Share Target): Datei kurz ablegen, dann die App öffnen.
+  // Die App holt sie dort sofort ab und löscht sie wieder.
+  if (req.method === 'POST' && new URL(req.url).pathname.endsWith('/share-target')) {
+    e.respondWith((async () => {
+      const form = await req.formData();
+      const file = form.get('file');
+      if (file && typeof file !== 'string') {
+        const cache = await caches.open('connector-share');
+        await cache.put('./shared-file', new Response(file, {
+          headers: { 'Content-Type': file.type || 'text/plain', 'X-File-Name': encodeURIComponent(file.name || 'geteilt.txt') },
+        }));
+      }
+      return Response.redirect('./#/geteilt', 303);
+    })());
+    return;
+  }
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   e.respondWith(
     fetch(req)

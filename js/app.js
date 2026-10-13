@@ -12,7 +12,7 @@ import { waNumber } from './phone.js';
 import { encryptJSON, decryptJSON, isEncrypted } from './crypto.js';
 import { decodeBytes, parseBackupText, describeFile } from './backup.js';
 
-const APP_VERSION = '0.2.2';
+const APP_VERSION = '0.3.0';
 const BACKUP_WARN_DAYS = 30;
 const RHYTHM_PRESETS = [7, 14, 28];
 
@@ -150,6 +150,7 @@ function render() {
     case 'kontakt': return sub === 'bearbeiten' ? renderEdit(id) : renderContactsPage(id);
     case 'neu': return renderEdit(null);
     case 'mehr': return renderMore();
+    case 'geteilt': return receiveSharedFile();
     default: location.replace('#/heute');
   }
 }
@@ -414,8 +415,8 @@ function openContactedDialog(id) {
 
 // ---------- Dialog: WhatsApp-Chat importieren ----------
 
-async function openChatImport(presetId) {
-  const file = await pickFile('.txt,text/plain');
+async function openChatImport(presetId, givenFile) {
+  const file = givenFile || await pickFile('.txt,text/plain');
   if (!file) return;
   let chat;
   try {
@@ -686,8 +687,8 @@ function showBackupReady(file, encrypted) {
   });
 }
 
-async function importBackup() {
-  const file = await pickFile('');
+async function importBackup(givenFile) {
+  const file = givenFile || await pickFile('.txt,.json,text/plain,application/json');
   if (!file) return;
   const text = decodeBytes(await file.arrayBuffer());
   const data = parseBackupText(text);
@@ -858,6 +859,29 @@ async function wipe() {
   await reload();
   toast('Alle Daten gelöscht');
   location.hash = '#/heute';
+}
+
+// ---------- Über das Teilen-Menü empfangene Datei ----------
+
+// Der Service Worker legt eine über „Teilen → CONNECTOR“ empfangene Datei kurz im
+// Zwischenspeicher ab. Hier wird sie abgeholt, sofort gelöscht und je nach Inhalt als
+// Sicherung oder als WhatsApp-Chat behandelt.
+async function receiveSharedFile() {
+  location.replace('#/mehr');
+  let file = null;
+  try {
+    const cache = await caches.open('connector-share');
+    const res = await cache.match('./shared-file');
+    if (res) {
+      const name = decodeURIComponent(res.headers.get('X-File-Name') || 'geteilt.txt');
+      file = new File([await res.blob()], name, { type: res.headers.get('Content-Type') || 'text/plain' });
+    }
+    await caches.delete('connector-share');
+  } catch { /* kein Zwischenspeicher */ }
+  if (!file) return toast('Keine Datei empfangen');
+  const data = parseBackupText(decodeBytes(await file.arrayBuffer()));
+  if (isEncrypted(data) || (data && data.app === 'connector')) return importBackup(file);
+  return openChatImport(null, file);
 }
 
 // ---------- Installation als App ----------

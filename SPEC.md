@@ -103,3 +103,7 @@ Das Repo ist öffentlich. Öffentlich ist nur der Programmcode, niemals Kontaktd
 - Datensicherung optional mit Passwort verschlüsselt (AES-GCM, PBKDF2-SHA-256, 600 000 Iterationen); das Passwort wird nicht gespeichert.
 - „Senden“ der Sicherung über das Teilen-Menü (Android: Quick Share), ohne Cloud. Dateiformat `.txt`, weil Chrome `.json` nicht teilt.
 - Keine EXE/APK: Installation über Chrome reicht vorerst.
+
+## Version 0.3
+
+- CONNECTOR erscheint im Android-Teilen-Menü (Web Share Target, nur installierte App). Geteilte Sicherungen öffnen den Einspiel-Dialog, geteilte WhatsApp-Exporte den Chat-Import. Die Datei liegt nur kurz im Zwischenspeicher des Service Workers und wird nach dem Abholen gelöscht.

@@ -16,7 +16,7 @@ Dieses Repo ist öffentlich, es enthält aber nur Programmcode. Kontaktdaten, No
 
 ### Daten auf ein anderes Gerät übertragen
 
-„Mehr“ → „Sicherung erstellen“ → Passwort → „Senden“ (Android: Teilen-Menü, z. B. Quick Share) oder „Auf Gerät speichern“. Auf dem anderen Gerät „Mehr“ → „Sicherung einspielen“ → Passwort → „Zusammenführen“. Sicherungen sind `.txt`-Dateien mit JSON-Inhalt, weil Chrome auf Android über das Teilen-Menü keine `.json`-Dateien weitergibt.
+„Mehr“ → „Sicherung erstellen“ → Passwort → „Senden“ (Android: Teilen-Menü, z. B. Quick Share) oder „Auf Gerät speichern“. Auf dem anderen Gerät „Mehr“ → „Sicherung einspielen“ → Passwort → „Zusammenführen“. Alternativ eine empfangene Sicherung (z. B. in „Dateien“, Google Drive oder nach Quick Share) über **Teilen → CONNECTOR** direkt an die installierte App schicken; das gilt ebenso für WhatsApp-Chat-Exporte. Sicherungen sind `.txt`-Dateien mit JSON-Inhalt, weil Chrome auf Android über das Teilen-Menü keine `.json`-Dateien weitergibt.
 
 ### WhatsApp-Chat importieren
 

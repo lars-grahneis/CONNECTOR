@@ -323,3 +323,22 @@ dialog::backdrop { background: rgba(0, 0, 0, .45); }
 
 .banner.install { background: var(--accent-soft); border-color: var(--accent); }
 .banner-actions { display: flex; gap: .4rem; flex: none; }
+
+/* App-Sperre */
+#lock {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+#lock[hidden] { display: none; }
+body.is-locked main, body.is-locked .tabbar, body.is-locked .topbar { visibility: hidden; }
+.lock-box { display: grid; gap: 1rem; width: min(320px, 100%); text-align: center; }
+.lock-box h2 { margin: 0; }
+.lock-box input { text-align: center; font-size: 1.6rem; letter-spacing: .5em; }
+.lock-icon { font-size: 2.4rem; }
+.link-btn { background: none; border: 0; color: var(--accent); font: inherit; font-size: .9rem; cursor: pointer; padding: .5rem; }

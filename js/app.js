@@ -11,8 +11,9 @@ import { birthdaysToICS } from './ics.js';
 import { waNumber } from './phone.js';
 import { encryptJSON, decryptJSON, isEncrypted } from './crypto.js';
 import { decodeBytes, parseBackupText, describeFile } from './backup.js';
+import { PIN_MIN, PIN_MAX, isValidPin, createPinRecord, checkPin, lockoutMs } from './lock.js';
 
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.4.0';
 const BACKUP_WARN_DAYS = 30;
 const RHYTHM_PRESETS = [7, 14, 28];
 
@@ -143,6 +144,7 @@ function setTab(tab, title) {
 }
 
 function render() {
+  if (locked) return;
   const { page, id, sub } = route();
   switch (page) {
     case 'heute': return renderToday();
@@ -831,6 +833,16 @@ async function renderMore() {
       </form>
     </section>
     <section class="card">
+      <h2>App-Sperre</h2>
+      <p class="muted small">Mit PIN fragt CONNECTOR beim Öffnen und nach ${LOCK_AFTER_MS / 60000} Minuten im Hintergrund nach der PIN. Das schützt vor neugierigen Blicken, ersetzt aber nicht die Bildschirmsperre des Geräts. Die PIN gilt nur auf diesem Gerät.</p>
+      <p>Status: <strong>${pinRecord ? '🔒 eingeschaltet' : 'aus'}</strong></p>
+      <div class="actions wrap">
+        ${pinRecord
+          ? '<button class="btn" data-action="pin-change">PIN ändern</button><button class="btn danger" data-action="pin-off">Sperre ausschalten</button>'
+          : '<button class="btn primary" data-action="pin-set">PIN festlegen</button>'}
+      </div>
+    </section>
+    <section class="card">
       <h2>Speicher und Datenschutz</h2>
       <p class="small">${plural(contacts.length, 'Kontakt', 'Kontakte')} auf diesem Gerät.
         Dauerhafter Speicher: <strong>${persisted == null ? 'unbekannt' : persisted ? 'aktiv' : 'nicht bestätigt'}</strong></p>
@@ -856,6 +868,7 @@ async function wipe() {
   await db.clearAll();
   settings = { defaultRhythm: DEFAULT_RHYTHM, countryCode: '49' };
   lastBackup = null;
+  pinRecord = null;
   await reload();
   toast('Alle Daten gelöscht');
   location.hash = '#/heute';
@@ -883,6 +896,142 @@ async function receiveSharedFile() {
   if (isEncrypted(data) || (data && data.app === 'connector')) return importBackup(file);
   return openChatImport(null, file);
 }
+
+// ---------- App-Sperre ----------
+
+const LOCK_AFTER_MS = 5 * 60 * 1000;
+const lockEl = document.getElementById('lock');
+let pinRecord = null;
+let locked = false;
+let hiddenAt = 0;
+
+async function lockApp() {
+  locked = true;
+  closeModal();
+  document.body.classList.add('is-locked');
+  lockEl.hidden = false;
+  lockEl.innerHTML = `<form class="lock-box" autocomplete="off">
+    <div class="lock-icon" aria-hidden="true">🔒</div>
+    <h2>CONNECTOR</h2>
+    <label>PIN eingeben
+      <input type="password" name="pin" inputmode="numeric" pattern="[0-9]*" maxlength="${PIN_MAX}" autocomplete="off" required>
+    </label>
+    <p class="error" role="alert"></p>
+    <button type="submit" class="btn primary">Entsperren</button>
+    <button type="button" class="link-btn" data-forgot>PIN vergessen?</button>
+  </form>`;
+  const form = lockEl.querySelector('form');
+  const input = form.elements.pin;
+  const err = form.querySelector('.error');
+  const btn = form.querySelector('button[type=submit]');
+  input.focus();
+  let busy = false;
+  const tryUnlock = async () => {
+    // Immer nur eine Prüfung gleichzeitig, sonst würden Fehlversuche nicht mitgezählt
+    if (busy) return;
+    busy = true;
+    try { await attempt(); } finally { busy = false; }
+  };
+  const attempt = async () => {
+    const fails = (await db.getMeta('pinFails')) || { count: 0, until: 0 };
+    const wait = fails.until - Date.now();
+    if (wait > 0) {
+      input.value = '';
+      err.textContent = `Zu viele Fehlversuche. Bitte ${Math.ceil(wait / 1000)} Sekunden warten.`;
+      return;
+    }
+    btn.disabled = true;
+    const ok = await checkPin(input.value, pinRecord);
+    btn.disabled = false;
+    if (ok) {
+      await db.setMeta('pinFails', { count: 0, until: 0 });
+      unlockApp();
+      return;
+    }
+    const count = fails.count + 1;
+    const delay = lockoutMs(count);
+    await db.setMeta('pinFails', { count, until: delay ? Date.now() + delay : 0 });
+    input.value = '';
+    input.focus();
+    err.textContent = delay ? `Falsche PIN. Nächster Versuch in ${Math.round(delay / 1000)} Sekunden.` : 'Falsche PIN.';
+  };
+  form.addEventListener('submit', e => { e.preventDefault(); tryUnlock(); });
+  input.addEventListener('input', () => {
+    input.value = input.value.replace(/\D/g, '');
+    if (pinRecord && input.value.length === pinRecord.length) tryUnlock();
+  });
+  form.querySelector('[data-forgot]').addEventListener('click', forgotPin);
+}
+
+function unlockApp() {
+  locked = false;
+  lockEl.hidden = true;
+  lockEl.innerHTML = '';
+  document.body.classList.remove('is-locked');
+  render();
+}
+
+async function forgotPin() {
+  if (!confirm('Die PIN lässt sich nicht wiederherstellen. Der einzige Weg ist, alle Daten auf diesem Gerät zu löschen und danach eine Sicherung einzuspielen. Fortfahren?')) return;
+  if (!confirm('Wirklich alle Kontakte, Notizen und Einstellungen auf diesem Gerät löschen?')) return;
+  await db.clearAll();
+  settings = { defaultRhythm: DEFAULT_RHYTHM, countryCode: '49' };
+  lastBackup = null;
+  pinRecord = null;
+  await reload();
+  location.hash = '#/mehr';
+  unlockApp();
+  toast('Daten gelöscht – jetzt „Sicherung einspielen“');
+}
+
+function pinDialog({ title, needCurrent, needNew, onDone }) {
+  openModal(`<form class="form" autocomplete="off">
+    <h2>${title}</h2>
+    ${needCurrent ? `<label>Aktuelle PIN <input type="password" name="cur" inputmode="numeric" pattern="[0-9]*" maxlength="${PIN_MAX}" autocomplete="off"></label>` : ''}
+    ${needNew ? `<label>Neue PIN (${PIN_MIN}–${PIN_MAX} Ziffern) <input type="password" name="pin" inputmode="numeric" pattern="[0-9]*" maxlength="${PIN_MAX}" autocomplete="off"></label>
+    <label>Neue PIN wiederholen <input type="password" name="pin2" inputmode="numeric" pattern="[0-9]*" maxlength="${PIN_MAX}" autocomplete="off"></label>
+    <p class="muted small">Die PIN lässt sich nicht wiederherstellen. Vergessen Sie sie, bleibt nur „alle Daten löschen“ und eine Sicherung neu einspielen. Legen Sie deshalb vorher eine Sicherung an.</p>` : ''}
+    <p class="error" role="alert"></p>
+    <div class="actions">
+      <button type="button" class="btn" data-close>Abbrechen</button>
+      <button type="submit" class="btn primary">Speichern</button>
+    </div>
+  </form>`, m => {
+    const form = m.querySelector('form');
+    form.querySelector('input').focus();
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const err = form.querySelector('.error');
+      const f = form.elements;
+      if (needCurrent && !(await checkPin(f.cur.value, pinRecord))) { err.textContent = 'Die aktuelle PIN stimmt nicht.'; return; }
+      if (needNew) {
+        if (!isValidPin(f.pin.value)) { err.textContent = `Die PIN braucht ${PIN_MIN} bis ${PIN_MAX} Ziffern.`; return; }
+        if (f.pin.value !== f.pin2.value) { err.textContent = 'Die beiden PINs stimmen nicht überein.'; return; }
+      }
+      await onDone(needNew ? f.pin.value : null);
+      closeModal();
+      render();
+    });
+  });
+}
+
+const pinActions = {
+  'pin-set': () => pinDialog({ title: 'PIN festlegen', needNew: true, onDone: async pin => {
+    pinRecord = await createPinRecord(pin);
+    await db.setMeta('pin', pinRecord);
+    toast('App-Sperre eingeschaltet');
+  } }),
+  'pin-change': () => pinDialog({ title: 'PIN ändern', needCurrent: true, needNew: true, onDone: async pin => {
+    pinRecord = await createPinRecord(pin);
+    await db.setMeta('pin', pinRecord);
+    toast('PIN geändert');
+  } }),
+  'pin-off': () => pinDialog({ title: 'Sperre ausschalten', needCurrent: true, onDone: async () => {
+    pinRecord = null;
+    await db.setMeta('pin', null);
+    toast('App-Sperre ausgeschaltet');
+  } }),
+};
 
 // ---------- Installation als App ----------
 
@@ -946,6 +1095,7 @@ const actions = {
   backup: () => exportBackup(),
   restore: () => importBackup(),
   wipe: () => wipe(),
+  ...pinActions,
   install: () => runInstall(),
   'install-later': () => { installBannerHidden = true; render(); },
   'delete-history': async d => {
@@ -1003,7 +1153,16 @@ wide.addEventListener('change', render);
 
 // Beim Zurückkehren in die App (z. B. am nächsten Tag) die Fälligkeiten neu berechnen
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && !modalEl.open && route().page !== 'neu' && route().sub !== 'bearbeiten') render();
+  if (document.visibilityState === 'hidden') {
+    hiddenAt = Date.now();
+    return;
+  }
+  if (pinRecord && hiddenAt && Date.now() - hiddenAt >= LOCK_AFTER_MS) {
+    hiddenAt = 0;
+    return lockApp();
+  }
+  hiddenAt = 0;
+  if (!modalEl.open && route().page !== 'neu' && route().sub !== 'bearbeiten') render();
 });
 
 async function init() {
@@ -1011,12 +1170,13 @@ async function init() {
     await reload();
     settings = { ...settings, ...(await db.getMeta('settings')) };
     lastBackup = (await db.getMeta('lastBackup')) || null;
+    pinRecord = (await db.getMeta('pin')) || null;
   } catch (err) {
     view.innerHTML = `<section class="empty"><h2>Speicher nicht verfügbar</h2>
       <p>Der Browser erlaubt keinen lokalen Speicher (z. B. im Inkognito-Modus). Bitte CONNECTOR in einem normalen Chrome-Fenster öffnen.</p></section>`;
     return;
   }
-  render();
+  if (pinRecord) lockApp(); else render();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
 

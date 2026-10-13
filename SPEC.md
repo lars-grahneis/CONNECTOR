@@ -107,3 +107,11 @@ Das Repo ist öffentlich. Öffentlich ist nur der Programmcode, niemals Kontaktd
 ## Version 0.3
 
 - CONNECTOR erscheint im Android-Teilen-Menü (Web Share Target, nur installierte App). Geteilte Sicherungen öffnen den Einspiel-Dialog, geteilte WhatsApp-Exporte den Chat-Import. Die Datei liegt nur kurz im Zwischenspeicher des Service Workers und wird nach dem Abholen gelöscht.
+
+## Version 0.4
+
+- App-Sperre per PIN (4–6 Ziffern), einschaltbar unter „Mehr“ → „App-Sperre“, je Gerät. Abfrage beim Öffnen und nach 5 Minuten im Hintergrund.
+- Gespeichert wird nur ein Prüfwert (PBKDF2-SHA-256, 150 000 Iterationen, zufälliges Salt), nicht die PIN.
+- Nach 5 Fehlversuchen Wartezeit 30 s, danach verdoppelnd bis 15 min; die Wartezeit übersteht Neuladen.
+- PIN vergessen: keine Hintertür, nur „alle Daten auf diesem Gerät löschen“ und Sicherung neu einspielen.
+- Grenze: Die Sperre schützt vor neugierigen Blicken, nicht vor technischem Zugriff; die Daten im Browser bleiben unverschlüsselt. Hauptschutz bleibt die Bildschirmsperre des Geräts.

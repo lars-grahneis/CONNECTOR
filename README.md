@@ -18,6 +18,10 @@ Dieses Repo ist öffentlich, es enthält aber nur Programmcode. Kontaktdaten, No
 
 „Mehr“ → „Sicherung erstellen“ → Passwort → „Senden“ (Android: Teilen-Menü, z. B. Quick Share) oder „Auf Gerät speichern“. Auf dem anderen Gerät „Mehr“ → „Sicherung einspielen“ → Passwort → „Zusammenführen“. Alternativ eine empfangene Sicherung (z. B. in „Dateien“, Google Drive oder nach Quick Share) über **Teilen → CONNECTOR** direkt an die installierte App schicken; das gilt ebenso für WhatsApp-Chat-Exporte. Sicherungen sind `.txt`-Dateien mit JSON-Inhalt, weil Chrome auf Android über das Teilen-Menü keine `.json`-Dateien weitergibt.
 
+### App-Sperre
+
+„Mehr“ → „App-Sperre“ → „PIN festlegen“ (4–6 Ziffern). CONNECTOR fragt dann beim Öffnen und nach 5 Minuten im Hintergrund nach der PIN. Die PIN lässt sich nicht wiederherstellen; vorher eine Sicherung anlegen.
+
 ### WhatsApp-Chat importieren
 
 In WhatsApp: Chat öffnen → ⋮ → Mehr → Chat exportieren → **Ohne Medien** → Datei auf dem Gerät speichern (bei .zip vorher entpacken). In CONNECTOR: „Mehr“ → „Chat-Export importieren“ oder auf der Kontaktkarte „Chat importieren“. Gespeichert wird nur das Datum der letzten Nachricht, nicht der Chattext.
@@ -41,4 +45,6 @@ Reines HTML, CSS und JavaScript ohne Build-Schritt und ohne externe Bibliotheken
 | `js/whatsapp.js`, `js/vcard.js`, `js/ics.js`, `js/phone.js` | Chat-Export lesen, vCard lesen, Kalenderdatei, WhatsApp-Nummer |
 | `js/db.js` | Lokaler Speicher (IndexedDB) |
 | `js/crypto.js` | Verschlüsselung der Sicherungsdatei |
+| `js/backup.js` | Sicherungsdatei tolerant lesen |
+| `js/lock.js` | App-Sperre (PIN-Prüfwert, Wartezeiten) |
 | `sw.js`, `manifest.webmanifest` | Offline-Betrieb und Installation |

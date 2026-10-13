@@ -1,50 +1,95 @@
-# CONNECTOR
+# CONNECTOR – Kontaktpflege fürs Handy
 
-Private Web-App zur Kontaktpflege: Wann habe ich mich zuletzt bei jemandem gemeldet, wer ist fällig, wer hat bald Geburtstag, und woran will ich beim nächsten Gespräch anknüpfen?
+CONNECTOR erinnert dich daran, dich regelmäßig bei den Menschen zu melden, die dir wichtig sind. Die App zeigt, wann du zuletzt Kontakt hattest, wer wieder dran ist, wer bald Geburtstag hat und woran du beim nächsten Gespräch anknüpfen wolltest.
 
-Funktionsumfang und Datenschutzregeln: [SPEC.md](SPEC.md).
+**App öffnen und installieren: https://lars-grahneis.github.io/CONNECTOR/**
 
-## Datenschutz
+Kostenlos, ohne Konto, ohne Werbung, ohne App Store. Die App startet leer; du trägst deine eigenen Kontakte ein.
 
-Dieses Repo ist öffentlich, es enthält aber nur Programmcode. Kontaktdaten, Notizen und Chats liegen ausschließlich im Browser des jeweiligen Geräts. Die App hat keinen Server und sendet keine Daten; eine Content Security Policy in `index.html` verbietet Verbindungen zu fremden Servern. Testdaten sind erfunden.
+<p>
+  <img src="docs/heute.png" alt="Ansicht Heute mit fälligen Kontakten und Geburtstagen" width="240">
+  <img src="docs/kontakt.png" alt="Kontaktkarte mit Anknüpfungspunkt und Gesprächshistorie" width="240">
+  <img src="docs/sperre.png" alt="App-Sperre mit PIN" width="240">
+</p>
 
-## Nutzung
+*Bildschirmfotos mit erfundenen Beispieldaten.*
 
-1. In Chrome öffnen: `https://lars-grahneis.github.io/CONNECTOR/`
-2. Installieren: In der App unter „Mehr“ → „App installieren“, oder Chrome-Menü ⋮ → „App installieren“ (Android) bzw. „Streamen, speichern und teilen“ → „Seite als App installieren“ (Windows).
-3. Regelmäßig unter „Mehr“ → „Sicherung erstellen“ eine Sicherung anlegen, am besten mit Passwort (AES-GCM, Schlüssel per PBKDF2-SHA-256 mit 600 000 Iterationen).
+## Datenschutz: Deine Daten bleiben auf deinem Gerät
 
-### Daten auf ein anderes Gerät übertragen
+- **Kein Server, keine Cloud, kein Konto.** Kontakte, Notizen und Geburtstage werden nur im Speicher deines Browsers auf deinem Gerät abgelegt.
+- **Keine Synchronisation zwischen Geräten.** Jedes Gerät hat seinen eigenen, getrennten Datenbestand. Das ist Absicht: Weil nichts abgeglichen wird, werden auch **keine Daten an externe Server übertragen**. Niemand außer dir – auch nicht der Entwickler – kann deine Kontakte sehen.
+- **Technisch abgesichert:** Eine Sicherheitsrichtlinie (Content Security Policy) in `index.html` verbietet der App Verbindungen zu fremden Servern. Es gibt keine Analyse-, Tracking- oder Werbedienste und keine nachgeladenen Fremdbibliotheken.
+- **Einzige Ausnahme, von dir ausgelöst:** Der Knopf „WhatsApp öffnen“ öffnet `wa.me` mit der Telefonnummer der Person.
+- **WhatsApp-Chats:** Ein importierter Chat-Export wird nur gelesen; gespeichert wird nur das Datum der letzten Nachricht, nicht der Chattext.
+- **Offener Quellcode:** Jeder kann den Code in diesem Repository prüfen. Er enthält keine personenbezogenen Daten; alle Testdaten sind erfunden.
 
-„Mehr“ → „Sicherung erstellen“ → Passwort → „Senden“ (Android: Teilen-Menü, z. B. Quick Share) oder „Auf Gerät speichern“. Auf dem anderen Gerät „Mehr“ → „Sicherung einspielen“ → Passwort → „Zusammenführen“. Alternativ eine empfangene Sicherung (z. B. in „Dateien“, Google Drive oder nach Quick Share) über **Teilen → CONNECTOR** direkt an die installierte App schicken; das gilt ebenso für WhatsApp-Chat-Exporte. Sicherungen sind `.txt`-Dateien mit JSON-Inhalt, weil Chrome auf Android über das Teilen-Menü keine `.json`-Dateien weitergibt.
+Folge daraus: **Du bist selbst für deine Sicherung verantwortlich.** Löschst du die Browserdaten oder wechselst du das Handy, sind die Kontakte ohne Sicherung weg (siehe unten).
 
-### App-Sperre
+## Funktionen
 
-„Mehr“ → „App-Sperre“ → „PIN festlegen“ (4–6 Ziffern). CONNECTOR fragt dann beim Öffnen und nach 5 Minuten im Hintergrund nach der PIN. Die PIN lässt sich nicht wiederherstellen; vorher eine Sicherung anlegen.
+- **Heute:** überfällige und bald fällige Kontakte, Geburtstage der nächsten 14 Tage
+- **Kontaktkarte:** „Anknüpfen beim nächsten Mal“, letzter Kontakt, Wunsch-Rhythmus (wöchentlich, alle 2 oder 4 Wochen oder frei), Geburtstag, Gesprächshistorie
+- **„✓ Gemeldet“:** setzt das Datum auf heute und nimmt eine Notiz auf
+- **Anrufen bzw. schreiben:** „WhatsApp öffnen“ direkt aus der Kontaktkarte
+- **Kontakte übernehmen:** aus dem Telefonbuch (Chrome auf Android), als vCard-Datei oder von Hand
+- **WhatsApp-Chat-Import:** übernimmt das Datum des letzten Kontakts aus einem Chat-Export
+- **Geburtstage in den Kalender:** Export als `.ics` für Google Kalender, damit auch bei geschlossener App erinnert wird
+- **Datensicherung:** als Datei, auf Wunsch mit Passwort verschlüsselt
+- **App-Sperre:** PIN (4–6 Ziffern) beim Öffnen und nach 5 Minuten im Hintergrund
+- **Offline nutzbar**, heller und dunkler Modus
 
-### WhatsApp-Chat importieren
+## Installation (Android)
 
-In WhatsApp: Chat öffnen → ⋮ → Mehr → Chat exportieren → **Ohne Medien** → Datei auf dem Gerät speichern (bei .zip vorher entpacken). In CONNECTOR: „Mehr“ → „Chat-Export importieren“ oder auf der Kontaktkarte „Chat importieren“. Gespeichert wird nur das Datum der letzten Nachricht, nicht der Chattext.
+1. Auf dem Handy in **Chrome** öffnen: https://lars-grahneis.github.io/CONNECTOR/
+2. Unten „Mehr“ → **„App installieren“**. Erscheint der Knopf nicht: Chrome-Menü ⋮ → „App installieren“ bzw. „Zum Startbildschirm hinzufügen“.
+3. CONNECTOR hat jetzt ein eigenes Symbol und öffnet sich ohne Browserleiste.
 
-### Geburtstagserinnerungen
+Updates kommen automatisch, sobald du die App mit Internetverbindung öffnest. Getestet ist CONNECTOR mit Chrome auf Android. Andere Browser und iPhone sind nicht getestet; Telefonbuch-Auswahl und „Teilen → CONNECTOR“ gibt es dort nicht.
 
-„Mehr“ → „Geburtstage exportieren“ erzeugt eine `.ics`-Datei. In Google Kalender (am PC: calendar.google.com → Einstellungen → Importieren) einlesen; dann erinnert der Kalender auch bei geschlossener App.
+## Erste Schritte
 
-## Entwicklung
+1. **Sperre einrichten (empfohlen):** „Mehr“ → „App-Sperre“ → „PIN festlegen“. Die PIN lässt sich nicht wiederherstellen.
+2. **Kontakte anlegen:** „Mehr“ → „Aus Telefonbuch wählen“, „vCard-Datei“ oder „Von Hand“.
+3. **Rhythmus und Geburtstag** pro Kontakt unter „Bearbeiten“ eintragen.
+4. **Nach jedem Gespräch** „✓ Gemeldet“ tippen und notieren, woran du nächstes Mal anknüpfen willst.
 
-Reines HTML, CSS und JavaScript ohne Build-Schritt und ohne externe Bibliotheken.
+## Datensicherung
 
-- Lokal starten: `python3 -m http.server` im Repo-Ordner, dann `http://localhost:8000/` öffnen.
-- Tests der Logik (Node.js 20+): `npm test`
+„Mehr“ → **„Sicherung erstellen“** → Passwort vergeben → „Auf Gerät speichern“ oder „Senden“ (z. B. in dein Google Drive).
+Wiederherstellen: „Mehr“ → **„Sicherung einspielen“** → Datei wählen → Passwort → „Zusammenführen“. Alternativ die Datei in der Dateien- oder Drive-App über **Senden → CONNECTOR** öffnen.
+
+Die verschlüsselte Sicherung (AES-GCM, Schlüssel per PBKDF2-SHA-256 mit 600 000 Iterationen) kann ohne Passwort niemand lesen. Das Passwort wird nirgends gespeichert; ohne Passwort ist auch die Wiederherstellung nicht möglich.
+
+Mit derselben Sicherung kannst du die Daten auch auf ein anderes Gerät übertragen – von Hand, nicht automatisch.
+
+## Grenzen
+
+- **Keine Benachrichtigungen bei geschlossener App:** Erinnerungen siehst du beim Öffnen auf „Heute“. Für Geburtstage gibt es den Kalender-Export.
+- **Die App-Sperre schützt vor neugierigen Blicken,** nicht vor technisch versiertem Zugriff auf ein entsperrtes Gerät; die Daten im Browser-Speicher sind nicht verschlüsselt. Der wichtigste Schutz ist die Bildschirmsperre deines Handys.
+- **WhatsApp bietet keine Schnittstelle** für private Konten; Chats lassen sich nur über den Export einlesen.
+
+## Für Entwicklerinnen und Entwickler
+
+Reines HTML, CSS und JavaScript ohne Build-Schritt und ohne externe Abhängigkeiten.
+
+- Lokal starten: im Repository-Ordner `python3 -m http.server`, dann http://localhost:8000/ öffnen.
+- Tests (Node.js 20+): `npm test`
+- Eigene Kopie veröffentlichen: Repository forken, unter Settings → Pages „Deploy from a branch“ mit `main` und `/ (root)` wählen.
 
 | Datei | Inhalt |
 |---|---|
-| `index.html`, `styles.css` | Seite und Gestaltung (hell/dunkel, Handy und Tablet) |
+| `index.html`, `styles.css` | Seite, Gestaltung, Sicherheitsrichtlinie |
 | `js/app.js` | Oberfläche und Abläufe |
 | `js/model.js`, `js/dates.js` | Fälligkeit, Geburtstage, Datumsrechnung |
-| `js/whatsapp.js`, `js/vcard.js`, `js/ics.js`, `js/phone.js` | Chat-Export lesen, vCard lesen, Kalenderdatei, WhatsApp-Nummer |
+| `js/whatsapp.js`, `js/vcard.js`, `js/ics.js`, `js/phone.js` | Chat-Export, vCard, Kalenderdatei, WhatsApp-Nummer |
 | `js/db.js` | Lokaler Speicher (IndexedDB) |
-| `js/crypto.js` | Verschlüsselung der Sicherungsdatei |
-| `js/backup.js` | Sicherungsdatei tolerant lesen |
-| `js/lock.js` | App-Sperre (PIN-Prüfwert, Wartezeiten) |
-| `sw.js`, `manifest.webmanifest` | Offline-Betrieb und Installation |
+| `js/crypto.js`, `js/backup.js` | Verschlüsselte Sicherung, tolerantes Einlesen |
+| `js/lock.js` | App-Sperre |
+| `sw.js`, `manifest.webmanifest` | Offline-Betrieb, Installation, Teilen-Ziel |
+| `SPEC.md` | Spezifikation und Änderungen je Version |
+
+Fehler und Wünsche bitte als [Issue](https://github.com/lars-grahneis/CONNECTOR/issues) melden – **niemals echte Kontaktdaten in ein Issue schreiben**, das Repository ist öffentlich.
+
+## Autor
+
+Lars Grahneis, Assistenzarzt Pathologie, Universitätsklinikum des Saarlandes (UKS), Homburg

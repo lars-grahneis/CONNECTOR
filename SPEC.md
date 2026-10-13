@@ -115,3 +115,8 @@ Das Repo ist öffentlich. Öffentlich ist nur der Programmcode, niemals Kontaktd
 - Nach 5 Fehlversuchen Wartezeit 30 s, danach verdoppelnd bis 15 min; die Wartezeit übersteht Neuladen.
 - PIN vergessen: keine Hintertür, nur „alle Daten auf diesem Gerät löschen“ und Sicherung neu einspielen.
 - Grenze: Die Sperre schützt vor neugierigen Blicken, nicht vor technischem Zugriff; die Daten im Browser bleiben unverschlüsselt. Hauptschutz bleibt die Bildschirmsperre des Geräts.
+
+## Version 1.0
+
+- Öffentliche Fassung: README für Nutzerinnen und Nutzer mit Datenschutzhinweisen (keine Synchronisation, keine Übertragung an externe Server), Bildschirmfotos mit erfundenen Daten.
+- Darstellungsfehler behoben: lange Notizen schoben den Knopf „✓ Gemeldet“ aus dem Bild.

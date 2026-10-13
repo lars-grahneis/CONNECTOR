@@ -13,7 +13,7 @@ import { encryptJSON, decryptJSON, isEncrypted } from './crypto.js';
 import { decodeBytes, parseBackupText, describeFile } from './backup.js';
 import { PIN_MIN, PIN_MAX, isValidPin, createPinRecord, checkPin, lockoutMs } from './lock.js';
 
-const APP_VERSION = '0.4.1';
+const APP_VERSION = '1.0.0';
 const BACKUP_WARN_DAYS = 30;
 const RHYTHM_PRESETS = [7, 14, 28];
 

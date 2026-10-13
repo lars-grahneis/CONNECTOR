@@ -342,3 +342,9 @@ body.is-locked main, body.is-locked .tabbar, body.is-locked .topbar { visibility
 .lock-box input { text-align: center; font-size: 1.6rem; letter-spacing: .5em; }
 .lock-icon { font-size: 2.4rem; }
 .link-btn { background: none; border: 0; color: var(--accent); font: inherit; font-size: .9rem; cursor: pointer; padding: .5rem; }
+
+/* Knopf in der Zeile nie abschneiden; lange Notizen kürzen */
+.row > .btn-small { flex: none; }
+.row-text { flex: 1; overflow: hidden; }
+.row-follow { display: block; max-width: 100%; }
+.list { grid-template-columns: minmax(0, 1fr); }

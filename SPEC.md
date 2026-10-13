@@ -95,3 +95,28 @@ Das Repo ist öffentlich. Öffentlich ist nur der Programmcode, niemals Kontaktd
 
 - Ich teste in Chrome auf dem Android-Handy und am PC und gebe Rückmeldung.
 - Testfälle: Kontakt von Hand anlegen, aus Telefonbuch wählen, vCard importieren, „Gemeldet“, Fälligkeit nach Rhythmus, Geburtstag in 14 Tagen, Chat-Import mit einem echten Kontakt, Sicherung exportieren und auf einem anderen Gerät importieren, Offline-Start.
+
+## Ergänzungen nach dem ersten Test (Version 0.2)
+
+- Löschen-Knopf auf jeder Kontaktkarte (mit Rückfrage).
+- Knopf „App installieren“ (unter „Mehr“ und als Hinweis auf „Heute“, sobald Chrome die Installation anbietet), sonst Schritt-für-Schritt-Hinweis.
+- Datensicherung optional mit Passwort verschlüsselt (AES-GCM, PBKDF2-SHA-256, 600 000 Iterationen); das Passwort wird nicht gespeichert.
+- „Senden“ der Sicherung über das Teilen-Menü (Android: Quick Share), ohne Cloud. Dateiformat `.txt`, weil Chrome `.json` nicht teilt.
+- Keine EXE/APK: Installation über Chrome reicht vorerst.
+
+## Version 0.3
+
+- CONNECTOR erscheint im Android-Teilen-Menü (Web Share Target, nur installierte App). Geteilte Sicherungen öffnen den Einspiel-Dialog, geteilte WhatsApp-Exporte den Chat-Import. Die Datei liegt nur kurz im Zwischenspeicher des Service Workers und wird nach dem Abholen gelöscht.
+
+## Version 0.4
+
+- App-Sperre per PIN (4–6 Ziffern), einschaltbar unter „Mehr“ → „App-Sperre“, je Gerät. Abfrage beim Öffnen und nach 5 Minuten im Hintergrund.
+- Gespeichert wird nur ein Prüfwert (PBKDF2-SHA-256, 150 000 Iterationen, zufälliges Salt), nicht die PIN.
+- Nach 5 Fehlversuchen Wartezeit 30 s, danach verdoppelnd bis 15 min; die Wartezeit übersteht Neuladen.
+- PIN vergessen: keine Hintertür, nur „alle Daten auf diesem Gerät löschen“ und Sicherung neu einspielen.
+- Grenze: Die Sperre schützt vor neugierigen Blicken, nicht vor technischem Zugriff; die Daten im Browser bleiben unverschlüsselt. Hauptschutz bleibt die Bildschirmsperre des Geräts.
+
+## Version 1.0
+
+- Öffentliche Fassung: README für Nutzerinnen und Nutzer mit Datenschutzhinweisen (keine Synchronisation, keine Übertragung an externe Server), Bildschirmfotos mit erfundenen Daten.
+- Darstellungsfehler behoben: lange Notizen schoben den Knopf „✓ Gemeldet“ aus dem Bild.
